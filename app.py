@@ -65,6 +65,12 @@ benchmark_episodes = st.sidebar.slider(
     min_value=50, max_value=1000, value=150, step=50,
     help="How many episodes each fresh Q-Learning agent trains for per maze during the benchmark. Higher values let harder mazes converge, but make the benchmark take longer to run (250 trials × this number)."
 )
+benchmark_trials = st.sidebar.slider(
+    "Benchmark Maze Count", 
+    min_value=50, max_value=500, value=250, step=50,
+    help="How many different random mazes to test during the benchmark. More mazes give a more reliable comparison, but take longer to run."
+)
+
 st.sidebar.header("A* Algorithm Tweaks")
 heuristic_type = st.sidebar.selectbox(
     "A* Distance Heuristic",
@@ -300,7 +306,7 @@ with col2:
 st.write("---")
 st.header("Performance Benchmarking")
 st.markdown("""
-This benchmark runs 250 head-to-head trials on fresh random mazes, comparing A*'s mathematically optimal path against a Q-Learning agent trained from scratch on each maze.
+This benchmark runs a series of head-to-head trials on fresh random mazes, comparing A*'s mathematically optimal path against a Q-Learning agent trained from scratch on each maze. Adjust the maze count and training episodes per maze in the sidebar.
 """)
 
 if st.button("Run Benchmark"):
@@ -311,7 +317,7 @@ if st.button("Run Benchmark"):
     paired_rl = []
     rl_failures = 0
     
-    total_trials = 250
+    total_trials = benchmark_trials
     for i in range(total_trials):
         status_msg.text(f"Running head-to-head benchmarking trial {i+1}/{total_trials}...")
         
