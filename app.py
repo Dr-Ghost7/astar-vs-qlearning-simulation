@@ -140,17 +140,22 @@ with col1:
         for node in visited:
             if animated_grid[node[0], node[1]] not in [2, 3]:
                 animated_grid[node[0], node[1]] = 4 
-                img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_search_color)
-                a_star_placeholder.image(img_array)
+                
+                with a_star_placeholder.container():
+                    img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_search_color)
+                    st.image(img_array)
                 time.sleep(animation_speed)
 
         for node in path:
             if animated_grid[node[0], node[1]] not in [2, 3]:
                 animated_grid[node[0], node[1]] = 5 
-            img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_path_color)
-            a_star_placeholder.image(img_array)
+            
+            with a_star_placeholder.container():
+                img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_path_color)
+                st.image(img_array)
             time.sleep(animation_speed)
         
+        a_star_placeholder.image(render_maze_with_agent(animated_grid))
         st.session_state.a_star_final_grid = animated_grid
 
     st.markdown("""
@@ -224,8 +229,9 @@ with col2:
                     if next_state not in [agent.start, agent.goal]:
                         temp_grid[next_state[0], next_state[1]] = 4 
                     
-                    img_array = render_maze_with_agent(temp_grid, agent_pos=next_state, agent_color="#FFD700")
-                    rl_placeholder.image(img_array)
+                    with rl_placeholder.container():
+                        img_array = render_maze_with_agent(temp_grid, agent_pos=next_state, agent_color="#FFD700")
+                        st.image(img_array)
                     
                     current_q = agent.q_table.get(next_state, np.zeros(4))
                     df_q = pd.DataFrame([current_q], columns=["Up", "Down", "Left", "Right"], index=[f"Coordinate {next_state}"])
@@ -242,19 +248,21 @@ with col2:
         
         rl_path = agent.get_optimal_path()
         animated_rl_grid = st.session_state.maze_grid.copy()
-        
+
         for node in rl_path:
             if animated_rl_grid[node[0], node[1]] not in [2, 3]:
                 animated_rl_grid[node[0], node[1]] = 5 
             
-            img_array = render_maze_with_agent(animated_rl_grid, agent_pos=node, agent_color=user_path_color)
-            rl_placeholder.image(img_array)
+            with rl_placeholder.container():
+                img_array = render_maze_with_agent(animated_rl_grid, agent_pos=node, agent_color=user_path_color)
+                st.image(img_array)
             
             current_q = agent.q_table.get(node, np.zeros(4))
             df_q = pd.DataFrame([current_q], columns=["Up", "Down", "Left", "Right"], index=[f"Coordinate {node}"])
             q_table_placeholder.dataframe(df_q.style.format("{:.2f}"))
             time.sleep(animation_speed)
-        
+            
+        rl_placeholder.image(render_maze_with_agent(animated_rl_grid))
         st.session_state.rl_final_grid = animated_rl_grid
 
     st.markdown("""
