@@ -330,3 +330,31 @@ if st.button("Run Benchmark"):
     * **Distribution Profile (Left Graph):** A* Search follows a spike distribution that is both very thin and densely populated, owing to the fact that it is highly deterministic, which means that it is able to always calculate the mathematically optimal path. Q-Learning follows a relatively wide distribution.
     * **Convergence Profile (Right Graph):** The learning curve indicates how the Q-learning algorithm optimizes its policy. During the first few episodes of learning, there is a large number of steps since the agent is exploring randomly; but thereafter, a decay in the steps occurs consistently.
     """)
+
+if run_a_star:
+        st.session_state.a_star_final_grid = None
+        
+        path, visited = solve_a_star(st.session_state.maze_grid, heuristic_metric=heuristic_type)
+        animated_grid = st.session_state.maze_grid.copy()
+        
+        # Use a text status bar to show progress instantly without lag
+        status_bar = st.progress(0)
+        
+        # 1. Fast track exploration tracking
+        for i, node in enumerate(visited):
+            if animated_grid[node[0], node[1]] not in [2, 3]:
+                animated_grid[node[0], node[1]] = 4 
+            
+            # Update a progress bar instead of hammering the server with plots
+            status_bar.progress(min((i + 1) / len(visited), 1.0))
+            time.sleep(animation_speed)
+                
+        # 2. Trace final path
+        for node in path:
+            if animated_grid[node[0], node[1]] not in [2, 3]:
+                animated_grid[node[0], node[1]] = 5 
+        
+        # Clear the status bar and render the final map ONCE
+        status_bar.empty()
+        st.session_state.a_star_final_grid = animated_grid
+        a_star_placeholder.pyplot(render_maze_with_agent(st.session_state.a_star_final_grid))    
