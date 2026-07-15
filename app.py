@@ -37,7 +37,7 @@ loop_rate = st.sidebar.slider(
 
 animation_speed = st.sidebar.slider(
     "Animation Delay (s)", 
-    min_value=0.005, max_value=0.2, value=0.02, step=0.005
+    min_value=0.005, max_value=0.2, value=0.07, step=0.005
 )
 
 st.sidebar.header("RL Hyperparameters")
@@ -89,7 +89,7 @@ HEX_COLORS = ["#F0F2F6", "#1E1E24", "#007FFF", "#FF4B4B", user_search_color, use
 CUSTOM_CMAP = ListedColormap(HEX_COLORS)
 
 def render_maze_with_agent(grid_matrix, agent_pos=None, agent_color="#FFD700"):
-    fig, ax = plt.subplots(figsize=(4.5, 4.5))
+    fig, ax = plt.subplots(figsize=(4.5, 4.5), dpi=80)
     
     local_colors = ["#F0F2F6", "#1E1E24", "#007FFF", "#FF4B4B", user_search_color, user_path_color]
     local_cmap = ListedColormap(local_colors)
@@ -110,6 +110,23 @@ def render_maze_with_agent(grid_matrix, agent_pos=None, agent_color="#FFD700"):
     
     plt.close(fig) 
     return image_pixels
+
+@st.fragment
+def animate_a_star(visited, path, animated_grid, placeholder):
+    for node in visited:
+        if animated_grid[node[0], node[1]] not in [2, 3]:
+            animated_grid[node[0], node[1]] = 4
+        img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_search_color)
+        placeholder.image(img_array)
+        time.sleep(animation_speed)
+    for node in path:
+        if animated_grid[node[0], node[1]] not in [2, 3]:
+            animated_grid[node[0], node[1]] = 5
+        img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_path_color)
+        placeholder.image(img_array)
+        time.sleep(animation_speed)
+    placeholder.image(render_maze_with_agent(animated_grid))
+    st.session_state.a_star_final_grid = animated_grid
 
 col1, spacer_col, col2 = st.columns([1, 0.15, 1])
 
@@ -137,26 +154,7 @@ with col1:
         path, visited = solve_a_star(st.session_state.maze_grid, heuristic_metric=heuristic_type)
         animated_grid = st.session_state.maze_grid.copy()
 
-        for node in visited:
-            if animated_grid[node[0], node[1]] not in [2, 3]:
-                animated_grid[node[0], node[1]] = 4 
-                
-                with a_star_placeholder.container():
-                    img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_search_color)
-                    st.image(img_array)
-                time.sleep(animation_speed)
-
-        for node in path:
-            if animated_grid[node[0], node[1]] not in [2, 3]:
-                animated_grid[node[0], node[1]] = 5 
-            
-            with a_star_placeholder.container():
-                img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_path_color)
-                st.image(img_array)
-            time.sleep(animation_speed)
-        
-        a_star_placeholder.image(render_maze_with_agent(animated_grid))
-        st.session_state.a_star_final_grid = animated_grid
+        animate_a_star(visited, path, animated_grid, a_star_placeholder)
 
     st.markdown("""
     **How A\* Search Works:** Consider A\* to be similar to a GPS mapping application that knows where to go. Unlike the other strategies, it does not assume anything. From the beginning itself, A\* uses mathematical calculations to find out how far is the red exit (destination) from its current location. It considers all available paths and picks up the one which brings it nearer to the destination.
