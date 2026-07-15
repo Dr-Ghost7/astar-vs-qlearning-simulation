@@ -85,9 +85,27 @@ if ('current_size' not in st.session_state or
 
 # Base Visual Palette
 HEX_COLORS = ["#F0F2F6", "#1E1E24", "#007FFF", "#FF4B4B", user_search_color, user_path_color]
+def matrix_to_emoji_grid(matrix):
+    grid_str = ""
+    for row in matrix:
+        line = ""
+        for cell in row:
+            if cell == 1:
+                line += "⬛"  # Wall
+            elif cell == 2:
+                line += "🟩"  # Start
+            elif cell == 3:
+                line += "🟥"  # Goal
+            elif cell == 4:
+                line += "🟡"  # Exploration Tracker
+            elif cell == 5:
+                line += "🔵"  # Final Route Path
+            else:
+                line += "⬜"  # Open Path
+        grid_str += line + "\n"
+    return grid_str
 CUSTOM_CMAP = ListedColormap(HEX_COLORS)
 
-# Optimized to generate Snappy PNG frames directly
 def render_maze_with_agent(grid_matrix, agent_pos=None, agent_color="#FFD700", as_bytes=True):
     fig, ax = plt.subplots(figsize=(4.5, 4.5))
     ax.imshow(grid_matrix, cmap=CUSTOM_CMAP, vmin=0, vmax=5)
@@ -110,15 +128,15 @@ def render_maze_with_agent(grid_matrix, agent_pos=None, agent_color="#FFD700", a
 
 col1, spacer_col, col2 = st.columns([1, 0.15, 1])
 
-# Col 1: Classical A* Search
+# Col 1
 with col1:
     st.subheader("Classical A* Search Tracker")
     a_star_placeholder = st.empty()
     
     if st.session_state.a_star_final_grid is not None:
-        a_star_placeholder.image(render_maze_with_agent(st.session_state.a_star_final_grid))
+        a_star_placeholder.code(matrix_to_emoji_grid(st.session_state.a_star_final_grid))
     else:
-        a_star_placeholder.image(render_maze_with_agent(st.session_state.maze_grid))
+        a_star_placeholder.code(matrix_to_emoji_grid(st.session_state.maze_grid))
     
     btn_col_a1, _, btn_col_a2 = st.columns([1, 2.7, 1])
     with btn_col_a1:
@@ -130,23 +148,20 @@ with col1:
             
     if run_a_star:
         st.session_state.a_star_final_grid = None
-        a_star_placeholder.image(render_maze_with_agent(st.session_state.maze_grid))
         
         path, visited = solve_a_star(st.session_state.maze_grid, heuristic_metric=heuristic_type)
         animated_grid = st.session_state.maze_grid.copy()
 
-        # Web Animation Loop for Visited Nodes
         for node in visited:
             if animated_grid[node[0], node[1]] not in [2, 3]:
                 animated_grid[node[0], node[1]] = 4 
-                a_star_placeholder.image(render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_search_color))
+                a_star_placeholder.code(matrix_to_emoji_grid(animated_grid))
                 time.sleep(animation_speed)
-                
-        # Web Animation Loop for Final Path
+
         for node in path:
             if animated_grid[node[0], node[1]] not in [2, 3]:
                 animated_grid[node[0], node[1]] = 5 
-            a_star_placeholder.image(render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_path_color))
+            a_star_placeholder.code(matrix_to_emoji_grid(animated_grid))
             time.sleep(animation_speed)
         
         st.session_state.a_star_final_grid = animated_grid
@@ -166,15 +181,15 @@ with col1:
         * **$h(n)$**: Estimated distance to red exit calculated by the selected heuristic type.
         """)
 
-# Col 2: Q-Learning Agent
+# Col 2
 with col2:
     st.subheader("Q-Learning Agent")
     rl_placeholder = st.empty()
     
     if st.session_state.rl_final_grid is not None:
-        rl_placeholder.image(render_maze_with_agent(st.session_state.rl_final_grid))
+        rl_placeholder.code(matrix_to_emoji_grid(st.session_state.rl_final_grid))
     else:
-        rl_placeholder.image(render_maze_with_agent(st.session_state.maze_grid))
+        rl_placeholder.code(matrix_to_emoji_grid(st.session_state.maze_grid))
         
     watch_training = st.checkbox("Watch AI explore during training (Slows it down)", value=False)
     st.caption(f"Active Step Limit: **{computed_max_steps}** moves allowed per episode.")
@@ -199,7 +214,7 @@ with col2:
             
     if run_rl:
         st.session_state.rl_final_grid = None
-        rl_placeholder.image(render_maze_with_agent(st.session_state.maze_grid))
+        rl_placeholder.code(matrix_to_emoji_grid(st.session_state.maze_grid))
         
         agent = QLearningAgent(st.session_state.maze_grid, epsilon=epsilon_rate)
         status_text = st.empty()
@@ -216,12 +231,12 @@ with col2:
                 old_value = agent.q_table[state][action]
                 next_max = np.max(agent.q_table[next_state]) if next_state in agent.q_table else 0
                 agent.q_table[state][action] = old_value + agent.alpha * (reward + agent.gamma * next_max - old_value)
-                
+
                 if watch_training and ep % 10 == 0:
                     temp_grid = st.session_state.maze_grid.copy()
                     if next_state not in [agent.start, agent.goal]:
                         temp_grid[next_state[0], next_state[1]] = 4 
-                    rl_placeholder.image(render_maze_with_agent(temp_grid, agent_pos=next_state, agent_color="#FFD700"))
+                    rl_placeholder.code(matrix_to_emoji_grid(temp_grid))
                     
                     current_q = agent.q_table.get(next_state, np.zeros(4))
                     df_q = pd.DataFrame([current_q], columns=["Up", "Down", "Left", "Right"], index=[f"Coordinate {next_state}"])
@@ -239,11 +254,10 @@ with col2:
         rl_path = agent.get_optimal_path()
         animated_rl_grid = st.session_state.maze_grid.copy()
         
-        # Web Animation Loop for RL Path tracing
         for node in rl_path:
             if animated_rl_grid[node[0], node[1]] not in [2, 3]:
                 animated_rl_grid[node[0], node[1]] = 5 
-            rl_placeholder.image(render_maze_with_agent(animated_rl_grid, agent_pos=node, agent_color=user_path_color))
+            rl_placeholder.code(matrix_to_emoji_grid(animated_rl_grid))
             
             current_q = agent.q_table.get(node, np.zeros(4))
             df_q = pd.DataFrame([current_q], columns=["Up", "Down", "Left", "Right"], index=[f"Coordinate {node}"])
@@ -269,7 +283,7 @@ with col2:
         * **$\max_{a'} Q(s', a')$**: Maximized memory value of potential next steps.
         """)
 
-# Section 3: Performance Benchmarking
+# Benchmark
 st.write("---")
 st.header("Performance Benchmarking")
 st.markdown("""
@@ -284,20 +298,32 @@ if st.button("Run Benchmark"):
     a_star_steps_log = []
     rl_steps_log = []
     
-    status_msg.text("Running A* Search trials...")
-    for i in range(250):
+    # Run 250 distinct trials head-to-head
+    total_trials = 250
+    for i in range(total_trials):
+        status_msg.text(f"Running head-to-head benchmarking trial {i+1}/{total_trials}...")
+        
+        # 1. Generate a fresh maze configuration for this specific trial
         test_grid = generate_maze(grid_size, grid_size, loop_rate)
+        
+        # 2. Run A* solver on this maze configuration
         path, _ = solve_a_star(test_grid, heuristic_metric=heuristic_type)
         a_star_steps_log.append(len(path))
-        progress_bar.progress(int((i + 1) / 500 * 100))
         
-    status_msg.text("Running Q-Learning training trials...")
-    test_agent = QLearningAgent(st.session_state.maze_grid, epsilon=epsilon_rate)
-    
-    for ep in range(250):
-        steps_taken = test_agent.train_episode()
-        rl_steps_log.append(steps_taken)
-        progress_bar.progress(int((250 + ep + 1) / 500 * 100))
+        # 3. Instantiate a fresh agent and train it from scratch on THIS specific maze configuration
+        test_agent = QLearningAgent(test_grid, epsilon=epsilon_rate)
+        
+        # Train the agent quickly for a fixed number of compilation episodes (e.g., 150)
+        # to see what path length it settles on for this specific maze layout
+        for ep in range(150):
+            last_episode_steps = test_agent.train_episode()
+            
+        # Log the final optimized path length the trained RL agent managed to find
+        rl_optimal_path = test_agent.get_optimal_path()
+        rl_steps_log.append(len(rl_optimal_path))
+        
+        # Update progress bar smoothly
+        progress_bar.progress(int((i + 1) / total_trials * 100))
         
     status_msg.text("Processing benchmark data...")
     progress_bar.empty()
@@ -305,33 +331,23 @@ if st.button("Run Benchmark"):
     
     import seaborn as sns
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.5))
+    fig, ax1 = plt.subplots(figsize=(7, 4.5))
     fig.patch.set_facecolor('#0E1117')
     
-    # Bell Curves
+    # Clean up comparison distribution curves
     ax1.set_facecolor('#1E1E24')
     sns.kdeplot(a_star_steps_log, fill=True, color="#007FFF", label="A* Search", ax=ax1, bw_adjust=1.5)
-    sns.kdeplot(rl_steps_log, fill=True, color=user_path_color, label="Q-Learning", ax=ax1, bw_adjust=0.8)
-    ax1.set_title("Path Length Distribution (Bell Curve)", color="white", fontsize=12)
+    sns.kdeplot(rl_steps_log, fill=True, color=user_path_color, label="Q-Learning", ax=ax1, bw_adjust=1.5)
+    ax1.set_title("Path Length Distribution Matrix", color="white", fontsize=12)
     ax1.set_xlabel("Steps to Goal", color="white")
     ax1.set_ylabel("Probability Density", color="white")
     ax1.tick_params(colors="white")
     ax1.legend()
     ax1.grid(True, alpha=0.1)
     
-    # The Learning Curve
-    ax2.set_facecolor('#1E1E24')
-    ax2.plot(range(len(rl_steps_log)), rl_steps_log, color=user_path_color, alpha=0.6, linewidth=1.5)
-    ax2.set_title("Q-Learning Convergence Rate", color="white", fontsize=12)
-    ax2.set_xlabel("Training Episodes", color="white")
-    ax2.set_ylabel("Steps Taken", color="white")
-    ax2.tick_params(colors="white")
-    ax2.grid(True, alpha=0.1)
-    
-    plt.tight_layout(w_pad=4.0)
-    
-    # Benchmarks show static figures, standard st.pyplot is fine here
+    plt.tight_layout()
     st.pyplot(fig)
+
     
     st.markdown(f"""
     ### Benchmark Analysis
