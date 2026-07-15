@@ -19,7 +19,7 @@ st.markdown("""
 ### Quick Start Guide
 1. **Setup:** In the sidebar controls, you can change the maze size, complexity, and colors.
 2. **A\* Search:** Press **Run A\* Solver** and see the math-based GPS instantly calculate the absolute shortest path.
-3. **Q-Learning:** Observe **Watch AI explore** to see the training in action, then press **Train & Run RL Agent** to have the AI learn the maze.
+3. **Q-Learning:** Check **Watch AI explore** to see the training happen live, then press **Train & Run RL Agent** to have the AI learn the maze.
 4. **Compare:** Scroll down and click **Run Benchmark** to view their performance data side-by-side.
 """)
 st.write("---")
@@ -60,7 +60,11 @@ max_steps_multiplier = st.sidebar.slider(
     min_value=1, max_value=5, value=2, step=1,
     help="Sets the per-run step ceiling to be: (Grid Size x Grid Size) x Multiplier. This is a safety limit that will make a reset happen if the AI gets stuck pacing in circles."
 )
-
+benchmark_episodes = st.sidebar.slider(
+    "Benchmark Training Episodes", 
+    min_value=50, max_value=1000, value=150, step=50,
+    help="How many episodes each fresh Q-Learning agent trains for per maze during the benchmark. Higher values let harder mazes converge, but make the benchmark take longer to run (250 trials × this number)."
+)
 st.sidebar.header("A* Algorithm Tweaks")
 heuristic_type = st.sidebar.selectbox(
     "A* Distance Heuristic",
@@ -296,8 +300,7 @@ with col2:
 st.write("---")
 st.header("Performance Benchmarking")
 st.markdown("""
-This benchmark tests the efficiency of paths that these two algorithms generate using 500 trials conducted on random mazes.
-The benchmark checks how many steps the algorithms take in order to reach the end point in comparison to mathematical optimizations and reinforcement learning.
+This benchmark runs 250 head-to-head trials on fresh random mazes, comparing A*'s mathematically optimal path against a Q-Learning agent trained from scratch on each maze.
 """)
 
 if st.button("Run Benchmark"):
@@ -318,7 +321,7 @@ if st.button("Run Benchmark"):
         a_star_len = len(path)
         
         test_agent = QLearningAgent(test_grid, epsilon=epsilon_rate)
-        for ep in range(150):
+        for ep in range(benchmark_episodes):
             last_episode_steps = test_agent.train_episode()
             
         rl_optimal_path = test_agent.get_optimal_path()
@@ -335,7 +338,7 @@ if st.button("Run Benchmark"):
     progress_bar.empty()
     status_msg.empty()
     
-    fig, ax1 = plt.subplots(figsize=(6, 6))
+    fig, ax1 = plt.subplots(figsize=(5, 5))
     fig.patch.set_facecolor('#0E1117')
     ax1.set_facecolor('#1E1E24')
     
@@ -354,14 +357,21 @@ if st.button("Run Benchmark"):
     ax1.set_ylim(0, axis_max)
     
     plt.tight_layout()
-    st.pyplot(fig, width="content")
+    chart_col, _ = st.columns([2, 1])
+    with chart_col:
+        st.pyplot(fig, width=480)
     
     solve_rate = (len(paired_rl) / total_trials) * 100
-    st.caption(f"Q-Learning converged on {len(paired_rl)}/{total_trials} mazes ({solve_rate:.1f}%) within 150 training episodes. Points above the red line took more steps than A*'s optimal path; points on the line matched it exactly.")
-
+    st.caption(f"Q-Learning converged on {len(paired_rl)}/{total_trials} mazes ({solve_rate:.1f}%) within {benchmark_episodes} training episodes. Points above the red line took more steps than A*'s optimal path; points on the line matched it exactly.")
     
+    if paired_rl:
+        avg_excess = np.mean([rl - a for rl, a in zip(paired_rl, paired_a_star)])
+    else:
+        avg_excess = 0
+
     st.markdown(f"""
     ### Benchmark Analysis
     
-    * **Distribution Profile:** A* Search follows a spike distribution that is both very thin and densely populated, owing to the fact that it is highly deterministic, which means that it is able to always calculate the mathematically optimal path. Q-Learning follows a relatively wide distribution.
+    * **Convergence:** Q-Learning fully solved {len(paired_rl)} of {total_trials} mazes within {benchmark_episodes} training episodes ({solve_rate:.1f}%). Mazes it couldn't solve in that budget aren't shown in the scatter plot above — try raising the episode count to see how that changes.
+    * **Path Quality:** On the mazes it did solve, Q-Learning's paths averaged {avg_excess:.1f} extra steps compared to A*'s optimal route. Points sitting on the red dashed line matched A* exactly; points further above it show a larger gap from optimal.
     """)
