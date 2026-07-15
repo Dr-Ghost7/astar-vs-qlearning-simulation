@@ -7,8 +7,8 @@ import time
 from maze import generate_maze
 from solvers import solve_a_star, QLearningAgent
 
-st.set_page_config(page_title="Intelligent Maze Escape", layout="wide")
-st.title("Intelligent Maze Escape: RL vs Classical Pathfinding")
+st.set_page_config(page_title="Maze Path Finding Simulation", layout="wide")
+st.title("A* Search vs Q-Learning Pathfinding Simulation")
 # Guide
 st.markdown("""
 ### Quick Start Guide
