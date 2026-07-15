@@ -89,14 +89,11 @@ HEX_COLORS = ["#F0F2F6", "#1E1E24", "#007FFF", "#FF4B4B", user_search_color, use
 CUSTOM_CMAP = ListedColormap(HEX_COLORS)
 
 def render_maze_with_agent(grid_matrix, agent_pos=None, agent_color="#FFD700"):
-    # Clear out any current active plot figures in memory to start clean
-    plt.clf()
-    plt.close('all')
+    fig, ax = plt.subplots(figsize=(4.5, 4.5))
     
     local_colors = ["#F0F2F6", "#1E1E24", "#007FFF", "#FF4B4B", user_search_color, user_path_color]
     local_cmap = ListedColormap(local_colors)
-
-    fig, ax = plt.subplots(figsize=(4.5, 4.5))
+    
     ax.imshow(grid_matrix, cmap=local_cmap, vmin=0, vmax=5)
     
     if agent_pos is not None:
@@ -106,7 +103,13 @@ def render_maze_with_agent(grid_matrix, agent_pos=None, agent_color="#FFD700"):
         
     ax.axis("off")
     fig.patch.set_facecolor('#0E1117')
-    return fig  # ALWAYS returns the object figure
+    
+    fig.canvas.draw()
+    rgba_buffer = fig.canvas.buffer_rgba()
+    image_pixels = np.asarray(rgba_buffer)
+    
+    plt.close(fig) 
+    return image_pixels
 
 col1, spacer_col, col2 = st.columns([1, 0.15, 1])
 
@@ -115,11 +118,10 @@ with col1:
     st.subheader("Classical A* Search Tracker")
     a_star_placeholder = st.empty()
     
-    # Restore original smooth Matplotlib visualization
     if st.session_state.a_star_final_grid is not None:
-        a_star_placeholder.pyplot(render_maze_with_agent(st.session_state.a_star_final_grid))
+        a_star_placeholder.image(render_maze_with_agent(st.session_state.a_star_final_grid))
     else:
-        a_star_placeholder.pyplot(render_maze_with_agent(st.session_state.maze_grid))
+        a_star_placeholder.image(render_maze_with_agent(st.session_state.maze_grid))
     
     btn_col_a1, _, btn_col_a2 = st.columns([1, 2.7, 1])
     with btn_col_a1:
@@ -135,22 +137,18 @@ with col1:
         path, visited = solve_a_star(st.session_state.maze_grid, heuristic_metric=heuristic_type)
         animated_grid = st.session_state.maze_grid.copy()
 
-        # Web Animation Loop for Visited Nodes
         for node in visited:
             if animated_grid[node[0], node[1]] not in [2, 3]:
                 animated_grid[node[0], node[1]] = 4 
-                fig = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_search_color)
-                a_star_placeholder.pyplot(fig)
-                plt.close(fig) # Wipes the rendering buffer clean instantly
+                img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_search_color)
+                a_star_placeholder.image(img_array)
                 time.sleep(animation_speed)
 
-        # Web Animation Loop for Final Path Route
         for node in path:
             if animated_grid[node[0], node[1]] not in [2, 3]:
                 animated_grid[node[0], node[1]] = 5 
-            fig = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_path_color)
-            a_star_placeholder.pyplot(fig)
-            plt.close(fig) # Prevent server-side memory bottlenecks
+            img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_path_color)
+            a_star_placeholder.image(img_array)
             time.sleep(animation_speed)
         
         st.session_state.a_star_final_grid = animated_grid
@@ -175,11 +173,10 @@ with col2:
     st.subheader("Q-Learning Agent")
     rl_placeholder = st.empty()
     
-    # Revert to original smooth Matplotlib visualization
     if st.session_state.rl_final_grid is not None:
-        rl_placeholder.pyplot(render_maze_with_agent(st.session_state.rl_final_grid))
+        rl_placeholder.image(render_maze_with_agent(st.session_state.rl_final_grid))
     else:
-        rl_placeholder.pyplot(render_maze_with_agent(st.session_state.maze_grid))
+        rl_placeholder.image(render_maze_with_agent(st.session_state.maze_grid))
         
     watch_training = st.checkbox("Watch AI explore during training (Slows it down)", value=False)
     st.caption(f"Active Step Limit: **{computed_max_steps}** moves allowed per episode.")
@@ -204,7 +201,7 @@ with col2:
             
     if run_rl:
         st.session_state.rl_final_grid = None
-        rl_placeholder.pyplot(render_maze_with_agent(st.session_state.maze_grid))
+        rl_placeholder.image(render_maze_with_agent(st.session_state.maze_grid))
         
         agent = QLearningAgent(st.session_state.maze_grid, epsilon=epsilon_rate)
         status_text = st.empty()
@@ -222,15 +219,13 @@ with col2:
                 next_max = np.max(agent.q_table[next_state]) if next_state in agent.q_table else 0
                 agent.q_table[state][action] = old_value + agent.alpha * (reward + agent.gamma * next_max - old_value)
 
-                # Smooth Matplotlib updates for active training exploration steps
                 if watch_training and ep % 10 == 0:
                     temp_grid = st.session_state.maze_grid.copy()
                     if next_state not in [agent.start, agent.goal]:
                         temp_grid[next_state[0], next_state[1]] = 4 
                     
-                    fig = render_maze_with_agent(temp_grid, agent_pos=next_state, agent_color="#FFD700")
-                    rl_placeholder.pyplot(fig)
-                    plt.close(fig) # Instantly clear from local runtime buffer
+                    img_array = render_maze_with_agent(temp_grid, agent_pos=next_state, agent_color="#FFD700")
+                    rl_placeholder.image(img_array)
                     
                     current_q = agent.q_table.get(next_state, np.zeros(4))
                     df_q = pd.DataFrame([current_q], columns=["Up", "Down", "Left", "Right"], index=[f"Coordinate {next_state}"])
@@ -248,14 +243,12 @@ with col2:
         rl_path = agent.get_optimal_path()
         animated_rl_grid = st.session_state.maze_grid.copy()
         
-        # Smooth Matplotlib updates for final optimized path route tracing
         for node in rl_path:
             if animated_rl_grid[node[0], node[1]] not in [2, 3]:
                 animated_rl_grid[node[0], node[1]] = 5 
             
-            fig = render_maze_with_agent(animated_rl_grid, agent_pos=node, agent_color=user_path_color)
-            rl_placeholder.pyplot(fig)
-            plt.close(fig) # Wipes plot context records cleanly
+            img_array = render_maze_with_agent(animated_rl_grid, agent_pos=node, agent_color=user_path_color)
+            rl_placeholder.image(img_array)
             
             current_q = agent.q_table.get(node, np.zeros(4))
             df_q = pd.DataFrame([current_q], columns=["Up", "Down", "Left", "Right"], index=[f"Coordinate {node}"])
@@ -350,6 +343,5 @@ if st.button("Run Benchmark"):
     st.markdown(f"""
     ### Benchmark Analysis
     
-    * **Distribution Profile (Left Graph):** A* Search follows a spike distribution that is both very thin and densely populated, owing to the fact that it is highly deterministic, which means that it is able to always calculate the mathematically optimal path. Q-Learning follows a relatively wide distribution.
-    * **Convergence Profile (Right Graph):** The learning curve indicates how the Q-learning algorithm optimizes its policy. During the first few episodes of learning, there is a large number of steps since the agent is exploring randomly; but thereafter, a decay in the steps occurs consistently.
+    * **Distribution Profile:** A* Search follows a spike distribution that is both very thin and densely populated, owing to the fact that it is highly deterministic, which means that it is able to always calculate the mathematically optimal path. Q-Learning follows a relatively wide distribution.
     """)
