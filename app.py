@@ -1,4 +1,6 @@
 import streamlit as st
+from PIL import Image
+import base64
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -111,6 +113,12 @@ def render_maze_with_agent(grid_matrix, agent_pos=None, agent_color="#FFD700"):
     plt.close(fig) 
     return image_pixels
 
+def image_to_data_uri(img_array):
+    buf = io.BytesIO()
+    Image.fromarray(img_array).save(buf, format="PNG")
+    b64 = base64.b64encode(buf.getvalue()).decode()
+    return f"data:image/png;base64,{b64}"
+
 col1, spacer_col, col2 = st.columns([1, 0.15, 1])
 
 # Col 1
@@ -142,7 +150,7 @@ with col1:
                 animated_grid[node[0], node[1]] = 4 
                 
                 img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_search_color)
-                a_star_placeholder.image(img_array)
+                a_star_placeholder.markdown(f'<img src="{image_to_data_uri(img_array)}" style="width:100%;">', unsafe_allow_html=True)
                 time.sleep(animation_speed)
 
         for node in path:
@@ -150,7 +158,7 @@ with col1:
                 animated_grid[node[0], node[1]] = 5 
             
             img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_path_color)
-            a_star_placeholder.image(img_array)
+            a_star_placeholder.markdown(f'<img src="{image_to_data_uri(img_array)}" style="width:100%;">', unsafe_allow_html=True)
             time.sleep(animation_speed)
         
         a_star_placeholder.image(render_maze_with_agent(animated_grid))
