@@ -304,25 +304,30 @@ if st.button("Run Benchmark"):
     progress_bar = st.progress(0)
     status_msg = st.empty()
     
-    a_star_steps_log = []
-    rl_steps_log = []
+    paired_a_star = []
+    paired_rl = []
+    rl_failures = 0
     
     total_trials = 250
     for i in range(total_trials):
         status_msg.text(f"Running head-to-head benchmarking trial {i+1}/{total_trials}...")
         
         test_grid = generate_maze(grid_size, grid_size, loop_rate)
+        
         path, _ = solve_a_star(test_grid, heuristic_metric=heuristic_type)
-        a_star_steps_log.append(len(path))
-
+        a_star_len = len(path)
+        
         test_agent = QLearningAgent(test_grid, epsilon=epsilon_rate)
-
         for ep in range(150):
             last_episode_steps = test_agent.train_episode()
             
         rl_optimal_path = test_agent.get_optimal_path()
+        
         if rl_optimal_path is not None:
-            rl_steps_log.append(len(rl_optimal_path))
+            paired_a_star.append(a_star_len)
+            paired_rl.append(len(rl_optimal_path))
+        else:
+            rl_failures += 1
         
         progress_bar.progress(int((i + 1) / total_trials * 100))
         
@@ -330,23 +335,29 @@ if st.button("Run Benchmark"):
     progress_bar.empty()
     status_msg.empty()
     
-    import seaborn as sns
-    
-    fig, ax1 = plt.subplots(figsize=(7, 4.5))
+    fig, ax1 = plt.subplots(figsize=(6, 6))
     fig.patch.set_facecolor('#0E1117')
-    
     ax1.set_facecolor('#1E1E24')
-    sns.kdeplot(a_star_steps_log, fill=True, color="#007FFF", label="A* Search", ax=ax1, bw_adjust=1.5)
-    sns.kdeplot(rl_steps_log, fill=True, color=user_path_color, label="Q-Learning", ax=ax1, bw_adjust=1.5)
-    ax1.set_title("Path Length Distribution Matrix", color="white", fontsize=12)
-    ax1.set_xlabel("Steps to Goal", color="white")
-    ax1.set_ylabel("Probability Density", color="white")
+    
+    ax1.scatter(paired_a_star, paired_rl, color=user_path_color, alpha=0.5, edgecolors='none', s=25)
+    
+    axis_max = max(max(paired_a_star, default=1), max(paired_rl, default=1)) + 5
+    ax1.plot([0, axis_max], [0, axis_max], color="#FF4B4B", linestyle="--", linewidth=1.5, label="Equal performance (y = x)")
+    
+    ax1.set_title("Q-Learning vs A* — Steps per Maze", color="white", fontsize=12)
+    ax1.set_xlabel("A* Steps (optimal)", color="white")
+    ax1.set_ylabel("Q-Learning Steps", color="white")
     ax1.tick_params(colors="white")
-    ax1.legend()
+    ax1.legend(facecolor="#1E1E24", labelcolor="white")
     ax1.grid(True, alpha=0.1)
+    ax1.set_xlim(0, axis_max)
+    ax1.set_ylim(0, axis_max)
     
     plt.tight_layout()
     st.pyplot(fig, width="content")
+    
+    solve_rate = (len(paired_rl) / total_trials) * 100
+    st.caption(f"Q-Learning converged on {len(paired_rl)}/{total_trials} mazes ({solve_rate:.1f}%) within 150 training episodes. Points above the red line took more steps than A*'s optimal path; points on the line matched it exactly.")
 
     
     st.markdown(f"""
