@@ -40,3 +40,4 @@ def generate_maze(width, height, loop_rate):
     grid[1, 1] = 2
     grid[h - 2, w - 2] = 3
     return grid
+

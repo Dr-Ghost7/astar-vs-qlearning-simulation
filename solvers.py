@@ -7,13 +7,10 @@ def heuristic(a, b, metric="Manhattan"):
     y2, x2 = b
     
     if metric == "Euclidean":
-        # Straight-line distance (Pythagorean Theorem)
         return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
     elif metric == "Chebyshev":
-        # Diagonal-friendly (Chess king distance)
         return max(abs(x1 - x2), abs(y1 - y2))
     else:
-        # Default Manhattan (Taxicab distance)
         return abs(x1 - x2) + abs(y1 - y2)
 
 def solve_a_star(grid, heuristic_metric="Manhattan"):
@@ -43,7 +40,6 @@ def solve_a_star(grid, heuristic_metric="Manhattan"):
                 new_cost = current_cost + 1
                 if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
                     cost_so_far[neighbor] = new_cost
-                    # Uses the selected heuristic metric dynamically
                     priority = new_cost + heuristic(neighbor, goal, metric=heuristic_metric)
                     heapq.heappush(pq, (priority, new_cost, neighbor))
                     came_from[neighbor] = current
@@ -130,7 +126,7 @@ class QLearningAgent:
             next_state = (state[0] + dr, state[1] + dc)
     
             if next_state in visited or next_state not in self.q_table:
-                break
+                return None
                 
             path.append(next_state)
             visited.add(next_state)

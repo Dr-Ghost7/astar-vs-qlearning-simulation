@@ -252,22 +252,28 @@ with col2:
         status_text.text("Training Complete! Tracing learned strategy path...")
         
         rl_path = agent.get_optimal_path()
-        animated_rl_grid = st.session_state.maze_grid.copy()
+        
+        if rl_path is None:
+            status_text.text("Agent failed to converge on a valid path — try increasing Training Episodes or Exploration Rate.")
+        else:
+            animated_rl_grid = st.session_state.maze_grid.copy()
 
-        for node in rl_path:
-            if animated_rl_grid[node[0], node[1]] not in [2, 3]:
-                animated_rl_grid[node[0], node[1]] = 5 
+            for node in rl_path:
+
+        
+                if animated_rl_grid[node[0], node[1]] not in [2, 3]:
+                    animated_rl_grid[node[0], node[1]] = 5 
             
-            img_array = render_maze_with_agent(animated_rl_grid, agent_pos=node, agent_color=user_path_color)
-            rl_placeholder.markdown(f'<img src="{image_to_data_uri(img_array)}" style="width:100%;">', unsafe_allow_html=True)
+                img_array = render_maze_with_agent(animated_rl_grid, agent_pos=node, agent_color=user_path_color)
+                rl_placeholder.markdown(f'<img src="{image_to_data_uri(img_array)}" style="width:100%;">', unsafe_allow_html=True)
             
-            current_q = agent.q_table.get(node, np.zeros(4))
-            df_q = pd.DataFrame([current_q], columns=["Up", "Down", "Left", "Right"], index=[f"Coordinate {node}"])
-            q_table_placeholder.dataframe(df_q.style.format("{:.2f}"))
-            time.sleep(animation_speed)
+                current_q = agent.q_table.get(node, np.zeros(4))
+                df_q = pd.DataFrame([current_q], columns=["Up", "Down", "Left", "Right"], index=[f"Coordinate {node}"])
+                q_table_placeholder.dataframe(df_q.style.format("{:.2f}"))
+                time.sleep(animation_speed)
             
-        rl_placeholder.image(render_maze_with_agent(animated_rl_grid))
-        st.session_state.rl_final_grid = animated_rl_grid
+            rl_placeholder.image(render_maze_with_agent(animated_rl_grid))
+            st.session_state.rl_final_grid = animated_rl_grid
 
     st.markdown("""
     **How Q-Learning Works:** Imagine an RL agent as a puppy learning to perform a new trick. The puppy has no maps, math abilities, or knowledge about the location of the exit. During training, it moves randomly bumping into walls. Every time it bumps into a wall, it receives a little penalty. But when it accidentally discovers the red exit, it receives a huge reward. After hundreds of such attempts, the puppy remembers those paths along which it received rewards. And even though the path may be strange and long, it does not matter for the puppy since it was discovered first.
@@ -301,31 +307,23 @@ if st.button("Run Benchmark"):
     a_star_steps_log = []
     rl_steps_log = []
     
-    # Run 250 distinct trials head-to-head
     total_trials = 250
     for i in range(total_trials):
         status_msg.text(f"Running head-to-head benchmarking trial {i+1}/{total_trials}...")
         
-        # 1. Generate a fresh maze configuration for this specific trial
         test_grid = generate_maze(grid_size, grid_size, loop_rate)
-        
-        # 2. Run A* solver on this maze configuration
         path, _ = solve_a_star(test_grid, heuristic_metric=heuristic_type)
         a_star_steps_log.append(len(path))
-        
-        # 3. Instantiate a fresh agent and train it from scratch on THIS specific maze configuration
+
         test_agent = QLearningAgent(test_grid, epsilon=epsilon_rate)
-        
-        # Train the agent quickly for a fixed number of compilation episodes (e.g., 150)
-        # to see what path length it settles on for this specific maze layout
+
         for ep in range(150):
             last_episode_steps = test_agent.train_episode()
             
-        # Log the final optimized path length the trained RL agent managed to find
         rl_optimal_path = test_agent.get_optimal_path()
-        rl_steps_log.append(len(rl_optimal_path))
+        if rl_optimal_path is not None:
+            rl_steps_log.append(len(rl_optimal_path))
         
-        # Update progress bar smoothly
         progress_bar.progress(int((i + 1) / total_trials * 100))
         
     status_msg.text("Processing benchmark data...")
@@ -337,7 +335,6 @@ if st.button("Run Benchmark"):
     fig, ax1 = plt.subplots(figsize=(7, 4.5))
     fig.patch.set_facecolor('#0E1117')
     
-    # Clean up comparison distribution curves
     ax1.set_facecolor('#1E1E24')
     sns.kdeplot(a_star_steps_log, fill=True, color="#007FFF", label="A* Search", ax=ax1, bw_adjust=1.5)
     sns.kdeplot(rl_steps_log, fill=True, color=user_path_color, label="Q-Learning", ax=ax1, bw_adjust=1.5)
@@ -349,7 +346,7 @@ if st.button("Run Benchmark"):
     ax1.grid(True, alpha=0.1)
     
     plt.tight_layout()
-    st.pyplot(fig)
+    st.pyplot(fig, width="content")
 
     
     st.markdown(f"""
