@@ -1,13 +1,14 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import time
 import io
 from maze import generate_maze
 from solvers import solve_a_star, QLearningAgent
-
 st.set_page_config(page_title="Maze Path Finding Simulation", layout="wide")
 st.title("A* Search vs Q-Learning Pathfinding Simulation")
 
