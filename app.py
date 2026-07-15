@@ -87,8 +87,12 @@ if ('current_size' not in st.session_state or
 # Base Visual Palette
 HEX_COLORS = ["#F0F2F6", "#1E1E24", "#007FFF", "#FF4B4B", user_search_color, user_path_color]
 CUSTOM_CMAP = ListedColormap(HEX_COLORS)
+
 def render_maze_with_agent(grid_matrix, agent_pos=None, agent_color="#FFD700"):
-    # Re-verify layout mapping parameters to prevent Matplotlib savefig crashes
+    # Clear out any current active plot figures in memory to start clean
+    plt.clf()
+    plt.close('all')
+    
     local_colors = ["#F0F2F6", "#1E1E24", "#007FFF", "#FF4B4B", user_search_color, user_path_color]
     local_cmap = ListedColormap(local_colors)
 
@@ -102,27 +106,7 @@ def render_maze_with_agent(grid_matrix, agent_pos=None, agent_color="#FFD700"):
         
     ax.axis("off")
     fig.patch.set_facecolor('#0E1117')
-    return fig
-
-def render_maze_with_agent(grid_matrix, agent_pos=None, agent_color="#FFD700", as_bytes=True):
-    fig, ax = plt.subplots(figsize=(4.5, 4.5))
-    ax.imshow(grid_matrix, cmap=CUSTOM_CMAP, vmin=0, vmax=5)
-    
-    if agent_pos is not None:
-        ax.plot(agent_pos[1], agent_pos[0], marker='o', color=agent_color, 
-                markersize=14, markeredgecolor='white', markeredgewidth=2, 
-                zorder=5)
-        
-    ax.axis("off")
-    fig.patch.set_facecolor('#0E1117')
-    
-    if as_bytes:
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png", bbox_inches="tight")
-        plt.close(fig)
-        buf.seek(0)
-        return buf.read()
-    return fig
+    return fig  # ALWAYS returns the object figure
 
 col1, spacer_col, col2 = st.columns([1, 0.15, 1])
 
