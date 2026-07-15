@@ -141,18 +141,16 @@ with col1:
             if animated_grid[node[0], node[1]] not in [2, 3]:
                 animated_grid[node[0], node[1]] = 4 
                 
-                with a_star_placeholder.container():
-                    img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_search_color)
-                    st.image(img_array)
+                img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_search_color)
+                a_star_placeholder.image(img_array)
                 time.sleep(animation_speed)
 
         for node in path:
             if animated_grid[node[0], node[1]] not in [2, 3]:
                 animated_grid[node[0], node[1]] = 5 
             
-            with a_star_placeholder.container():
-                img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_path_color)
-                st.image(img_array)
+            img_array = render_maze_with_agent(animated_grid, agent_pos=node, agent_color=user_path_color)
+            a_star_placeholder.image(img_array)
             time.sleep(animation_speed)
         
         a_star_placeholder.image(render_maze_with_agent(animated_grid))
