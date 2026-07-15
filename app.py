@@ -87,8 +87,12 @@ if ('current_size' not in st.session_state or
 HEX_COLORS = ["#F0F2F6", "#1E1E24", "#007FFF", "#FF4B4B", user_search_color, user_path_color]
 CUSTOM_CMAP = ListedColormap(HEX_COLORS)
 def render_maze_with_agent(grid_matrix, agent_pos=None, agent_color="#FFD700"):
+    # Re-verify layout mapping parameters to prevent Matplotlib savefig crashes
+    local_colors = ["#F0F2F6", "#1E1E24", "#007FFF", "#FF4B4B", user_search_color, user_path_color]
+    local_cmap = ListedColormap(local_colors)
+
     fig, ax = plt.subplots(figsize=(4.5, 4.5))
-    ax.imshow(grid_matrix, cmap=CUSTOM_CMAP, vmin=0, vmax=5)
+    ax.imshow(grid_matrix, cmap=local_cmap, vmin=0, vmax=5)
     
     if agent_pos is not None:
         ax.plot(agent_pos[1], agent_pos[0], marker='o', color=agent_color, 
