@@ -235,9 +235,8 @@ with col2:
                     if next_state not in [agent.start, agent.goal]:
                         temp_grid[next_state[0], next_state[1]] = 4 
                     
-                    with rl_placeholder.container():
-                        img_array = render_maze_with_agent(temp_grid, agent_pos=next_state, agent_color="#FFD700")
-                        st.image(img_array)
+                    img_array = render_maze_with_agent(temp_grid, agent_pos=next_state, agent_color="#FFD700")
+                    rl_placeholder.markdown(f'<img src="{image_to_data_uri(img_array)}" style="width:100%;">', unsafe_allow_html=True)
                     
                     current_q = agent.q_table.get(next_state, np.zeros(4))
                     df_q = pd.DataFrame([current_q], columns=["Up", "Down", "Left", "Right"], index=[f"Coordinate {next_state}"])
@@ -259,9 +258,8 @@ with col2:
             if animated_rl_grid[node[0], node[1]] not in [2, 3]:
                 animated_rl_grid[node[0], node[1]] = 5 
             
-            with rl_placeholder.container():
-                img_array = render_maze_with_agent(animated_rl_grid, agent_pos=node, agent_color=user_path_color)
-                st.image(img_array)
+            img_array = render_maze_with_agent(animated_rl_grid, agent_pos=node, agent_color=user_path_color)
+            rl_placeholder.markdown(f'<img src="{image_to_data_uri(img_array)}" style="width:100%;">', unsafe_allow_html=True)
             
             current_q = agent.q_table.get(node, np.zeros(4))
             df_q = pd.DataFrame([current_q], columns=["Up", "Down", "Left", "Right"], index=[f"Coordinate {node}"])
